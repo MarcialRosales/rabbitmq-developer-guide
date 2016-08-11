@@ -1,4 +1,4 @@
-## Declaring queues and exchanges and bindings (RabbitMQ resources)
+## Declaring queues, exchanges and bindings (RabbitMQ resources)
 
 ### Let each application declare the RabbitMq resources they need
 Client applications should always assume their queues, exchanges and bindings do not exist and do not survive node restart and therefore they have to create them. Every time our application connects to RMQ we should create all our resources and this means every time, even after a connection failure.
@@ -35,7 +35,9 @@ Channel.queueDeclare(“queueName”, durable, exclusive, autoDelete, arguments)
 
 ### Mirrored queues
 
-### how do I customize queues and exchanges, for instance, with a Dead-Letter-Exchange or with a TTL?
+TODO
+
+### We should use `Policies` to configure queues and exchanges rather than programmatically when we declare them
 There are 2 ways of customizing a queue or exchange. One way is programmatically when we declare queue/exchange by passing a set of arguments.
 ```
 ```
