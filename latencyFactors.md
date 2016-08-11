@@ -5,7 +5,7 @@ It slows down publishing rate because the message has to get to N slaves queues 
 
 Note: When a node joins a cluster (say it was down due to maintenance or it crashed) and RabbitMQ allocates a slave queue on it, the queue is automatically considered unsynchronized if the master queue is not empty. If the queue is configured with `ha_sync_mode = automatic` (the default is `manual`), RabbitMq will block the producers until the new slave has a replica of all the messages in the master. This `ha_sync_mode = automatic` has a negative impact on the publishing rate and it may also affect the consumers because we are moving messages from one queue to another over the network.
 
-To make the synchronization faster we can tune how many messages Rabbit should send to the slave in one go (https://www.rabbitmq.com/ha.html#sync- batch-size). By default, RabbitMQ sends one by one. Take into account the average message size to calculate the size of the batch and compare it with your network capacity. We don’t want to max out the network and cause net_ticktime packets to time out and cause Network partitions.
+To make the synchronization faster we can tune how many messages Rabbit should send to the slave in one go (https://www.rabbitmq.com/ha.html#sync-batch-size). By default, RabbitMQ sends one by one. Take into account the average message size to calculate the size of the batch and compare it with your network capacity. We don’t want to max out the network and cause net_ticktime packets to time out and cause Network partitions.
 
 
 ### Persistency
@@ -50,7 +50,7 @@ Note: Consider using efficient encoding protocols like ProtoBuf or compressing t
 Having a 5-node cluster makes no difference if we have all connections and queues concentrated in 1 or 2 nodes.
 To achieve a better-balanced cluster we can use a Load Balancer (round-robin, or least-loaded node) in front of the cluster or make some applications connect to their preferred nodes first with a fall-back strategy (i.e. connect to any other node if we cannot connect to the preferred ones).
 
-The former approach only distributes the connection but not necessarily the queues. To even distribute the queues we can use a policy’s parameter called queue-master-locator (https://www.rabbitmq.com/ha.html#queue-master- location) = min-masters. The default value is client-local which is the standard behaviour where queue gets created in the node where we were connected when we declared it. This can also apply to mirror queues which is very convenient.
+The former approach only distributes the connection but not necessarily the queues. To even distribute the queues we can use a policy’s parameter called queue-master-locator (https://www.rabbitmq.com/ha.html#queue-master-location) = min-masters. The default value is client-local which is the standard behaviour where queue gets created in the node where we were connected when we declared it. This can also apply to mirror queues which is very convenient.
 
 The latter approach is far more flexible but also more complex. The application is fully aware of the cluster topology, which nodes exist, where queues exist and where producers and consumers connect. But on the other hand, it may bring lots of dividends in terms of performance. It really depends on the application design. For instance, it does not matter that we declare the queue in node A, if we are using mirror all. This is just one example.
 
