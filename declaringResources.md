@@ -40,9 +40,15 @@ TODO
 ### We should use `Policies` to configure queues and exchanges rather than programmatically when we declare them
 There are 2 ways of customizing a queue or exchange. One way is programmatically when we declare queue/exchange by passing a set of arguments.
 ```
+channel.exchangeDeclare("some.exchange.name", "direct");
+
+Map<String, Object> args = new HashMap<String, Object>();
+args.put("x-dead-letter-exchange", "some.exchange.name");
+channel.queueDeclare("myqueue", false, false, false, args);
 ```
 The second, and i should say the proper way of doing it, is to use `Policies`.
 ```
+rabbitmqctl set_policy DLX ".*" '{"dead-letter-exchange":"my-dlx"}' --apply-to queues
 ```
 
 The reason is quite simple. AMQP protocol establishes that once a queue/exchange is declared, we cannot change its settings. Say for instance, version 1 of our application creates a queue as durable without any settings. On version 2 we realize that we need to configure a Dead-Letter-Queue and put some TTL on the messages so that old messages go to the DLQ. Our v2 application will not be able to declare the queue because it conflicts with whats in RabbitMq. We would have to create a new queue with the new settings, empty the v1 queue to the v2 queue. A big hassle!

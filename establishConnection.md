@@ -34,7 +34,9 @@ If we are using automatic recovery we don’t have much to do but to wait until 
 - <b>the application closed the connection or the channel itself (`initByAp = true`)</b>  
 If we need to do some clean up, when do we do it? On this ShutdownListener’s callback or before this callback?
 - <b>the application invoked an operation in the channel that caused an exception (`isHardError = false`)</b>  
-The channel is automatically closed, consumers will stop receiving messages and automatic recovery does not trigger in this case. It is up to the application to deal with it. The producer thread can quickly handle the situation within a try/catch block. It does not need a `ShutdownListener`. If the exception originates within the consumer’s callback then the consumer has to create a new channel and registers again as a consumer because its subscription is already cancelled. But this scenario could have been handled via the `Consumer.handleCancel` method.
+The channel is automatically closed, consumers will stop receiving messages and automatic recovery does not trigger in this case. It is up to the application to deal with it.  
+The producer thread can quickly handle the situation within a try/catch block. It does not need a `ShutdownListener`.  
+On the contrary, if the exception originates within the consumer’s callback then the consumer has to create a new channel and registers again as a consumer because its subscription is already cancelled. But this scenario could have been handled via the `Consumer.handleCancel` method.
 
 Regardless what triggers the shutdown event and whether we want to do something about it or not, we should at least track it. Spring AMQP automatically logs these events but we may want to change the logging statements and/or track in any other way.
 
