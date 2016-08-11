@@ -16,22 +16,25 @@ In case of a connection failure, we can delegate to Spring AMQP and/or Java AMQP
 We have the possibility of setting up exponential back-off retries and maximum number of retries too.
 
 <b>Java AMQP</b>  
-There are 2 issues with Java AMQP. The first one is that it is very limited and the retry interval is fixed and we define a maximum number of attempts either.
-And the second issue is that we need to wait until we have a connection in order to create the queues, exchanges and bindings. This may not be a problem and it boils down to application design and preferences.
+There are 2 issues with Java AMQP:
+1. The retry algorithm uses a fixed interval and we cannot define the maximum number of attempts.
+2. We need to wait until we have a connection in order to create the queues, exchanges and bindings. This may not be a problem and it boils down to application design and preferences.
 
-### If the library reconnects by itself, should I add a ShutdownListener to the connection?
+### If the library automatically reconnects, should I add a ShutdownListener to the `Connection`?
 
-It really depends on whether the shutdown was initiated by the application and how much you rely on the library to automatically recover “everything” if the shutdown was not initiated by the app.
-If the shutdown was initiated by the application, you definitely don’t want to reconnect but to terminate the application. The question is whether you need to do some clean up and where you want to implement them. Should this `ShutdownListener` trigger the clean up of resources or instead should the application logic who initiated the shutdown who is in charge of it?
+It really depends on whether the shutdown was initiated by the application and how much you rely on the library to automatically recover “everything” if the shutdown was not initiated by the app.  
+If the shutdown was initiated by the application, you definitely don’t want to reconnect but to terminate the application. The question is whether you need to do some clean up and where you want to implement them. Should this `ShutdownListener` trigger the clean up of resources or instead should the application logic who initiated the shutdown who is in charge of it?  
 If the shutdown was not initiated by the application and we rely on the library to automatically recover then why would I need a `ShutdownListener`? Definitely for tracking purposes, either to log it or to record it in some Health Status bean exposed via a `/health` http endpoint.
 
 ### Once more, do I need to add a ShutdownListener to each channel?
 A channel will receive a shutdown event if:
 
-- the connection closed (`isHardError = true`). If we are using automatic
-recovery we don’t have much to do but to wait until it recovers (we can add a [RecoveryListener](https://www.rabbitmq.com/api-guide.html#recovery-listeners)). Regardless who initiated the close operation, we may want to clean up some resources (e.g. db connection, socket connection, etc) when we disconnect from Rabbit or only when the application terminates.
-- the application closed the connection or the channel itself (`initByAp = true`). If we need to do some clean up, when do we do it? On this ShutdownListener’s callback or before this callback?
-- The application invoked an operation in the channel that caused an exception (`isHardError = false`). The channel is automatically closed, consumers will stop receiving messages and automatic recovery does not trigger in this case. It is up to the application do deal with it. The producer thread can quickly handle the situation within the try/catch block. It does not need a ShutdownListener. If the exception originates within the consumer’s callback then the consumer has to create a new channel and registers again as a consumer because its subscription is already cancelled. But this scenario could have been handled via the Consumer.handleCancel method.
+- <b>the connection closed (`isHardError = true`)</b>  
+If we are using automatic recovery we don’t have much to do but to wait until it recovers (we can add a [RecoveryListener](https://www.rabbitmq.com/api-guide.html#recovery-listeners)). Regardless who initiated the close operation, we may want to clean up some resources (e.g. db connection, socket connection, etc) when we disconnect from Rabbit or only when the application terminates.
+- <b>the application closed the connection or the channel itself (`initByAp = true`)</b>  
+If we need to do some clean up, when do we do it? On this ShutdownListener’s callback or before this callback?
+- <b>The application invoked an operation in the channel that caused an exception (`isHardError = false`)</b>  
+The channel is automatically closed, consumers will stop receiving messages and automatic recovery does not trigger in this case. It is up to the application do deal with it. The producer thread can quickly handle the situation within the try/catch block. It does not need a ShutdownListener. If the exception originates within the consumer’s callback then the consumer has to create a new channel and registers again as a consumer because its subscription is already cancelled. But this scenario could have been handled via the Consumer.handleCancel method.
 
 Regardless what triggers the shutdown event and whether we want to do something about it or not, we should at least track it. Spring AMQP automatically logs these events but we may want to change the logging statements and/or track in any other way.
 
