@@ -10,26 +10,26 @@ These 2 methods will not handle one edge situation which is sending a message to
 
 ### Publisher Confirmation How-to
 
-1. The Producer’s AMQP channel must be set to “Publisher Confirms” mode: `channel.confirmSelect();`
+1) The Producer’s AMQP channel must be set to “Publisher Confirms” mode: `channel.confirmSelect();`
 
-2. Every message sent by the Publisher to the channel must not be considered as sent until a “Publisher Confirm” for that particular message arrives.
+2) Every message sent by the Publisher to the channel must not be considered as sent until a “Publisher Confirm” for that particular message arrives.
 
-3. The publisher must keep which messages have not received a confirmation yet.
+3) The publisher must keep which messages have not received a confirmation yet.
 
-4. After we send a message, we insert it into a data structure as a raw byte array and index it by its deliveryTag :
+4) After we send a message, we insert it into a data structure as a raw byte array and index it by its deliveryTag :
 ```
   deliveryTag = channel.getNextPublishSeqNo();
   channel.basicPublish(....);
 ```
 
-5. Once we receive a confirmation via the `ConfirmListener.handleAck(deliveryTag, multiple)` method, we clear from the data structure all the messages up to the `deliveryTag ` if `multiple` is true else only the message with that `deliveryTag`.
+5) Once we receive a confirmation via the `ConfirmListener.handleAck(deliveryTag, multiple)` method, we clear from the data structure all the messages up to the `deliveryTag ` if `multiple` is true else only the message with that `deliveryTag`.
 
 
-6. If we receive a negative confirmation via the `ConfirmListener.handleNack(deliverTag, multiple)` method, we need to resend all the messages up to the `deliveryTag` if `multiple` is true. We retrieve the messages from the data structure.
+6) If we receive a negative confirmation via the `ConfirmListener.handleNack(deliverTag, multiple)` method, we need to resend all the messages up to the `deliveryTag` if `multiple` is true. We retrieve the messages from the data structure.
 
 Warning: We have to resend the messages from the same publishing thread, not from the `ConfirmListener` callback. We cannot simultaneously use the same channel from different threads.
 
-7. How long do we wait for publisher confirmations? It really depends on our application design. See the following scenarios we may encounter, hopefully some of them applies to your application design:
+7) How long do we wait for publisher confirmations? It really depends on our application design. See the following scenarios we may encounter, hopefully some of them applies to your application design:
 <p/>Scenario 1):  
  ```
       [Upstream App]  ----(sends)---> [Our producer application]-----(publish)------>[RMQ]
@@ -47,14 +47,14 @@ How long shall we wait for a confirmation? That depends on the contract with the
 ```
 Our producer application receives messages from an upstream application which delivers the messages and forgets about them. The upstream application assumes the message is delivered as soon as it sends it out. Therefore it is the responsibility of our producer application to guarantee message delivery. This is the worst scenario we can be because we have to deal with several scenarios we did not have in the previous scenario. For instance, if we receive a negative publisher confirmation we need to be able to send the message again. For that, we need to keep the message body in a reliable message store. By reliable I mean any message store we can trust should our producer application crashed. Certainly we should not use local memory. On top of that, we have to have a timer that sends the message again if we don't receive a publisher confirmation after certain amount of time. And also, we need to think what do we do with those messages in the message store if our producer application crashes or terminates.
 
-8. Spring AMQP has methods that we can call to retrieve the last messages sent but not confirmed in the last N millisec (RabbitTemplate.getUnconfirmed(millis)); And we can resend those messages right away via the RabbitTemplate.
+8) Spring AMQP has methods that we can call to retrieve the last messages sent but not confirmed in the last N millisec (RabbitTemplate.getUnconfirmed(millis)); And we can resend those messages right away via the RabbitTemplate.
 
 
 
 ### I need to know if a message made it to a consumer
 AMQP defines another delivery-related flag named immediate, which is a step beyond mandatory in the sense it ensures that the message has been actually delivered to a consumer. RabbitMQ has chosen not to support this feature.
 
-### can I send messages to my queues without using any exchanges, like in JMS....?
+### Can I send messages to my queues without using any exchanges, like in JMS....?
 Use of `default exchange` (direct, durable) to publish messages to queues is very convenient because it resembles other messaging styles like JMS where we published messages directly to queues. But this convenience creates a tight coupling between producers and consumers because the producer becomes aware of particular queue names. This basically voids the benefits of having the layer of indirection.
 
 Limit the use of default exchanges to PoC.
