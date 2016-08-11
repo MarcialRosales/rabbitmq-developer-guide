@@ -2,7 +2,7 @@
 
 There are lots of very good books ([RabbitMQ in Action](https://www.manning.com/books/rabbitmq-in-action), [RabbitMQ in Depth](https://www.manning.com/books/rabbitmq-in-depth)) and [extensive documentation](https://www.rabbitmq.com/documentation.html) about RabbitMQ. It is clear that we don't need yet another book. This guide collects a set of recommendations and best practices on how to use RabbitMQ.
 
-The guide offers recommendations which are applicable regardless of the AMQP library we use. When it matters, this guide will provide separate advise for Java AMQP and Spring AMQP clients.
+Most of the recommendations are applicable to any AMQP library we use. However, when it matters, this guide will provide separate advise for Java AMQP and Spring AMQP clients.
 
 Best Practices and recommendations:
 - [Establishing a connection](establishConnection.md)
