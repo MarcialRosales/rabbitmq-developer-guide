@@ -6,7 +6,7 @@ Most of the recommendations are applicable to any AMQP library we use. However, 
 
 Best Practices and recommendations:
 - [Establishing a connection](establishConnection.md)
-- [Declaring queues and exchanges and bindings (RabbitMQ resources](declaringResources.md)
+- [Declaring queues and exchanges and bindings (RabbitMQ resources)](declaringResources.md)
 - [Message Delivery](messageDelivery.md)
 - [Reliable Messaging - what can go wrong?](reliableMessaging.md)
 

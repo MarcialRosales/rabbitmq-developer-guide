@@ -70,8 +70,16 @@ There are many reasons for confirmations to not come back:
 
 
 ### Do not requeue poison messages
-Try to avoid requeuing messages that are likely to be repeatedly rejected by the consumer (poison messages).
-Poison message: contains badly formatted payload or invalid data. Sending it back to the queue is simply a waste of resources because the broker will keep delivering and the consumers will keep rejecting it. Wrap your consumers around a filter that based on the type of exception, it decides whether to requeue or not the message. This feature is available in Spring AMQP (FatalExceptionStrategy).
+Try to avoid requeuing messages that are likely to be repeatedly rejected by the consumer (poison messages).  
+<b>Poison message</b>: A message that contains badly formatted payload or invalid data. Sending it back to the queue is simply a waste of resources because the broker will keep delivering and the consumers will keep rejecting it.
+
+<b>Java AMQP</b>  
+Wrap your consumers around a filter that based on the type of exception, it decides whether to requeue or reject the message.
+
+<b>Spring AMQP</b>  
+When a listener throws an exception, it is wrapped in a `ListenerExecutionFailedException` and, normally the message is rejected and requeued by the broker. Setting `defaultRequeueRejected` in the `MessageListenerContainer` to false will cause messages to be discarded (or routed to a dead letter exchange). The listener can throw an `AmqpRejectAndDontRequeueException` to conditionally control this behavior.
+
+If your application relies on Spring `MessageConverter`, Spring can fail to convert the message without our application knowing it. When this situation occurs, Spring will automatically throw `MessageConversionException` which is handled by the `ErrorHandler` configured in the `MessageListenerContainer`. The default implementation is  `ConditionalRejectingErrorHandler` which automatically rejects the message. We can customize this class by injecting our implementation of `FatalExceptionStrategy`.
 
 ### Handle outage of external parties
 Sometimes, our consumers need to talk to an external service over the network, say a database or a log repository like Splunk, or any other service you can think of. Plan in advance in case of outage of that external service.
@@ -85,15 +93,18 @@ Another way to scale out is to spread the load across other clusters using feder
 
 ### What do we do with the messages in the Dead-Letter-Queues?
 We should have a DLX/DLQ associated to a queue especially if we cannot afford to loose messages. But once those messages are in the DLQ queue what do we do with them? Shall we retry them? Shall we move them somewhere else for auditing purposes? Regardless, we need to drain them from the queue otherwise we are creating another problem.
-If we want to implement an automated redelivery of those messages back to the original queue if the consumer(s) dropped them. We don’t want to retry indefinitely though. There is a paper that describes in detail how to implement it using RabbitMq features: http://dev.venntro.com/2014/07/back-off-and-retry- with-rabbitmq/
+If we want to implement an automated redelivery of those messages back to the original queue if the consumer(s) dropped them. We don’t want to retry indefinitely though. There is a paper that describes in detail how to implement it using RabbitMq features: http://dev.venntro.com/2014/07/back-off-and-retry-with-rabbitmq/
 If messages are being dropped because of TTL and/or max depth reasons, we certainly want to know about it. Maybe we want to add more consumers or make those consumers consume faster (e.g. using larger prefetch and/or batching acks).
 
 ### Do I need to care about Consumer Cancellations?
-Yes, if you are using non-mirrored queues or there is the possibility of someone deleting the queue while consumers are attached to it.
-Yes, if you are using non-durable queues and the consumer is connected to different node where the queue was created. This is very plausible when we use `master-queue-locator = min-masters`.
-Yes, if you are using mirrored queues. See below.
+<b>Java AMQP</b>  
+It depends:  
+- If there is a possibility of someone deleting the queue while consumers are attached to it. We use the callback to declare the queue again.
+- If you are using non-durable queues and the consumer is connected to a different node where the queue was created. This is very plausible when we use `master-queue-locator = min-masters`. We use the callback to declare the queue again.
+- If you are using mirrored queues with client acknowledgement there is no reason why we need to handle consumer cancellations. By default, RabbitMQ will not notify consumer cancellations for mirrored queues unless it is not able to elect a master queue.
+- If you are using mirrored queues without client acknowledgements there is a possibility of loosing messages if the master queue goes down. If we want to be notified in this case, say to refresh the application state from an external storage, we need to tell RabbitMq to notify us.
 
-By default (capability `consumer_cancel_notify = true`), all clients are notified via the `Consumer.handleCancel` method. Therefore, we need to implement this method to create a new transient queue and subscribe to it.
+By default (RabbitMq's capability `consumer_cancel_notify = true`), all clients are notified via the `Consumer.handleCancel` method, except for mirrored queues.
 
 If we are consuming from a non-mirrored durable queue and the node with that queue goes down, the queue is not available. Like in the previous case, the client will receive a callback thru the `Consumer.handleCancel` method. But in this case, the client will not be able to create/declare the queue because it is durable. But at least the client knows that the consumer does not exist anymore and it has to resubscribe once it is able to declare the queue again. This will only be possible when the failed node comes back up.
 
@@ -106,4 +117,20 @@ Map<String, Object> args = new HashMap<String, Object>(); args.put("x-cancel-on-
 String consumerTag = channel.basicConsume(queueName, autoAck, args, myconsumer);
 ```
 
-<b>Be aware that</b> our consumer may stop receiving messages if it does not know that RabbitMq closed its channel. TODO prepare a lab to test this.
+<b>Be aware that</b> our consumer may stop receiving messages if it does not know that RabbitMq closed its channel.
+
+<b>Spring AMQP</b>  
+TODO
+
+## How to improve publishing throughput
+
+* Do not use Mandatory flag
+* If you don't require guarantee of delivery and can afford to loose messages, do not use publisher confirmations
+* If you can afford to loose messages even upon a RabbitMQ node failure, do not use message persistency (Spring AMQP's `MessageBuilder` builds `Message`(s) with persistency)
+* Use Micro-batching technique -when applicable- which consists on sending more than one message into a single AQMP Message. Consumers must support this model. Be careful with the overall size of the batch message as we don't want to send Messages of several Megabytes in size.
+
+## How to improve delivery throughput
+
+* If your consumer requires manual acknowledgements, try to increase the prefetch count until your consumers does not need to wait for messages (default prefetch count is 1 which is typically quite low).  Prefetch-count is the maximum number of unacknowledged messages allowed in the client.
+* If your consumer requires manual acknowledgements, consider acknowledging messages in batches (a good ratio is 50% of the prefetch-count)
+* If your consumer does not require manual acknowledgement (i.e. auto acks), RabbitMQ will send as many messages as the client can hold in its TCP buffer. The prefetch-count is not used because as soon RabbitMQ sends the message it is considered as acknowledged.

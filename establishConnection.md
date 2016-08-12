@@ -79,3 +79,5 @@ In the <b>client side</b>, there is not really a cost per channel besides some m
 In the <b>server side</b>, i.e. in RabbitMQ server, every channel means the creation of 4 processes with their associated data structures (memory cost) and stats emissions (cpu and network cost) run runs every N seconds and sends stats to the stats db process (this process may run in the same local server or another server in the cluster). As the number of channels (and obviously connections) increases, so does the load in RabbitMq. When this happens you need to increase the number of cpus and/or add more nodes to spread the processes.
 
 By the way, a connection is even more expensive because RabbitMq requires 8 processes to handle a connection. We need to find a proper balance between number of connections and channels.
+
+The general recommendation is to use one connection and many channels on a single connection rather than many connections with 1 channel.
