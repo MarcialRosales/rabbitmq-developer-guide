@@ -13,6 +13,7 @@ Best Practices and recommendations:
 - [Message Loss Tolerance Use Cases](messageLossTolerance.md)
 - [Factors that affect message's latency](latencyFactors.md)
 
+Tips and useful guides:
 - [Tracing which messages are being published and delivered](https://github.com/MarcialRosales/rabbitmq-tracing-guide)
 - [Authentication and Authorization using LDAP backend](https://github.com/MarcialRosales/rabbitmq-ldap-integration)
 - [Which Erlang version is RabbitMQ using?](whichErlangVersion.md)
