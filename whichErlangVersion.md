@@ -43,6 +43,8 @@ We obtained the following using `rabbitmqctl status|environment|report`:
 
 Given the information above, which Erlang Version is RabbitMQ running with?
 
+We follow these steps to find that out:
+
 **1. Erlang major version**
 
 Erlang major version is `19` -> We get it from Erlang/OTP **19** [erts-8.3.5.3]
