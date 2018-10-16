@@ -15,3 +15,4 @@ Best Practices and recommendations:
 
 - [Tracing which messages are being published and delivered](https://github.com/MarcialRosales/rabbitmq-tracing-guide)
 - [Authentication and Authorization using LDAP backend](https://github.com/MarcialRosales/rabbitmq-ldap-integration)
+- [Which Erlang version is RabbitMQ using?](whichErlangVersion.md)
